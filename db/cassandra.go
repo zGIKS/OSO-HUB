@@ -13,8 +13,16 @@ var Session *gocql.Session
 
 func InitCassandra() {
 	_ = godotenv.Load() // Carga .env si existe
-	cluster := gocql.NewCluster(os.Getenv("CASSANDRA_HOST"))
-	cluster.Keyspace = os.Getenv("CASSANDRA_KEYSPACE")
+	host := os.Getenv("CASSANDRA_HOST")
+	port := os.Getenv("CASSANDRA_PORT")
+	keyspace := os.Getenv("CASSANDRA_KEYSPACE")
+	var cluster *gocql.ClusterConfig
+	if port != "" {
+		cluster = gocql.NewCluster(host + ":" + port)
+	} else {
+		cluster = gocql.NewCluster(host)
+	}
+	cluster.Keyspace = keyspace
 	cluster.Consistency = gocql.Quorum
 	cluster.Timeout = 5 * time.Second
 	cluster.ConnectTimeout = 5 * time.Second
