@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra_container
+    ports:
+      - "9042:9042"
+    environment:
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+      - CASSANDRA_CLUSTER_NAME=OsoHubCluster
+      - CASSANDRA_DC=DC1
+      - CASSANDRA_RACK=Rack1
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./DB.cql:/init/DB.cql
+
+  cassandra-init:
+    image: cassandra:4.1
+    depends_on:
+      - cassandra
+    volumes:
+      - ./DB.cql:/init/DB.cql
+    entrypoint: >
+      sh -c "
+        echo 'Esperando que Cassandra esté listo...' &&
+        for i in $(seq 1 30); do
+          cqlsh cassandra_container -e 'DESCRIBE KEYSPACES;' && break || sleep 5;
+        done &&
+        echo 'Ejecutando DB.cql...' &&
+        cqlsh cassandra_container -f /init/DB.cql
+      "
+
+volumes:
+  cassandra_data:
