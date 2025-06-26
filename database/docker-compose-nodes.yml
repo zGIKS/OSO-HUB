@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  cassandra1:
+    image: cassandra:4.1
+    container_name: cassandra_node1
+    environment:
+      - CASSANDRA_CLUSTER_NAME=OsoHubCluster
+      - CASSANDRA_DC=azure1
+      - CASSANDRA_RACK=Rack1
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data1:/var/lib/cassandra
+      - ./DB.cql:/init/DB.cql
+
+  cassandra2:
+    image: cassandra:4.1
+    container_name: cassandra_node2
+    environment:
+      - CASSANDRA_CLUSTER_NAME=OsoHubCluster
+      - CASSANDRA_DC=azure1
+      - CASSANDRA_RACK=Rack2
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+    ports:
+      - "9043:9042"
+    volumes:
+      - cassandra_data2:/var/lib/cassandra
+
+volumes:
+  cassandra_data1:
+  cassandra_data2:

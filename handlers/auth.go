@@ -41,7 +41,7 @@ func Login(c *gin.Context) {
 
 	var user models.User
 	query := `SELECT user_id, username, email, password_hash, profile_picture_url, bio, role, created_at FROM users_by_id WHERE email = ? LIMIT 1 ALLOW FILTERING`
-	if err := db.Session.Query(query, req.Email).Consistency(gocql.One).Scan(
+	if err := db.GetSession().Query(query, req.Email).Consistency(gocql.One).Scan(
 		&user.UserID, &user.Username, &user.Email, &user.PasswordHash,
 		&user.ProfilePictureURL, &user.Bio, &user.Role, &user.CreatedAt,
 	); err != nil {

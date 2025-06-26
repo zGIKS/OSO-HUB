@@ -54,14 +54,14 @@ func CreateUser(c *gin.Context) {
 
 	// Check if email already exists
 	var exists string
-	err = db.Session.Query(`SELECT email FROM users_by_id WHERE email = ? ALLOW FILTERING`, req.Email).Scan(&exists)
+	err = db.GetSession().Query(`SELECT email FROM users_by_id WHERE email = ? ALLOW FILTERING`, req.Email).Scan(&exists)
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 		return
 	}
 
 	// Insert user
-	if err := db.Session.Query(`INSERT INTO users_by_id (user_id, username, email, password_hash, profile_picture_url, bio, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	if err := db.GetSession().Query(`INSERT INTO users_by_id (user_id, username, email, password_hash, profile_picture_url, bio, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		userID, req.Username, req.Email, string(hash), req.ProfilePictureURL, req.Bio, "user", createdAt).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user"})
 		return
@@ -99,7 +99,7 @@ func GetUserByID(c *gin.Context) {
 
 	var user models.User
 	query := `SELECT user_id, username, email, password_hash, profile_picture_url, bio, role, created_at FROM users_by_id WHERE user_id = ? LIMIT 1`
-	if err := db.Session.Query(query, userID).Consistency(gocql.One).Scan(
+	if err := db.GetSession().Query(query, userID).Consistency(gocql.One).Scan(
 		&user.UserID, &user.Username, &user.Email, &user.PasswordHash,
 		&user.ProfilePictureURL, &user.Bio, &user.Role, &user.CreatedAt,
 	); err != nil {
@@ -131,7 +131,7 @@ func BanUser(c *gin.Context) {
 	if banned == "false" {
 		newRole = "user"
 	}
-	if err := db.Session.Query(`UPDATE users_by_id SET role = ? WHERE user_id = ?`, newRole, userID).Exec(); err != nil {
+	if err := db.GetSession().Query(`UPDATE users_by_id SET role = ? WHERE user_id = ?`, newRole, userID).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating user"})
 		return
 	}

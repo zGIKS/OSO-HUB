@@ -30,19 +30,41 @@ import (
 // @tag.description Endpoints for image management and feed
 
 func main() {
-	// Cargar variables de entorno desde .env
-	err := godotenv.Load(".env")
+	// Load environment variables from .env.astra
+	err := godotenv.Load(".env.astra")
 	if err != nil {
-		log.Println("No se pudo cargar el archivo .env, usando variables de entorno del sistema")
+		log.Println("Could not load .env.astra file, using system environment variables")
 	}
-	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET")) // DEBUG: Verifica el valor cargado
+	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET")) // DEBUG: Check loaded value
 
-	middleware.InitJWTSecret() // Inicializa el secreto JWT después de cargar el .env
+	// Set Gin mode from env (default: debug)
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "" {
+		ginMode = gin.DebugMode
+	}
+	gin.SetMode(ginMode)
+
+	middleware.InitJWTSecret() // Initialize JWT secret after loading .env
 
 	db.InitCassandra()
-	defer db.Session.Close()
+	defer func() {
+		sess := db.GetSession()
+		if sess != nil {
+			sess.Close()
+		}
+	}()
 
 	r := gin.Default()
+
+	// Configure trusted proxies from .env
+	proxies := os.Getenv("TRUSTED_PROXIES")
+	proxyList := []string{}
+	if proxies != "" {
+		proxyList = append(proxyList, proxies)
+	}
+	if err := r.SetTrustedProxies(proxyList); err != nil {
+		log.Fatalf("Error setting trusted proxies: %v", err)
+	}
 	r.POST("/images/:image_id/like", middleware.AuthMiddleware(), handlers.LikeImage)
 	r.DELETE("/images/:image_id/like", middleware.AuthMiddleware(), handlers.UnlikeImage)
 	r.GET("/images/:image_id/likes/count", handlers.GetImageLikesCount)
