@@ -1,4 +1,4 @@
-CREATE KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'datacenter1': 2};
+CREATE KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC1': 2};
 
 USE osohub;
 

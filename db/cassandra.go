@@ -43,6 +43,7 @@ func InitCassandra() {
 		hostList := strings.Split(hosts, ",")
 		cluster := gocql.NewCluster(hostList...)
 		cluster.Keyspace = keyspace
+		// Use Consistency QUORUM for strong consistency: with 3 nodes and RF=3, at least 2 nodes must acknowledge
 		cluster.Consistency = gocql.Quorum
 		cluster.Timeout = 10 * time.Second
 		session, err := cluster.CreateSession()
