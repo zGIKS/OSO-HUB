@@ -3,13 +3,22 @@ package middleware
 import (
 	"net/http"
 	"os"
-	"strings"
-
 	"osohub/models"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// GetUserIDFromContext extrae el user_id del contexto Gin
+func GetUserIDFromContext(c *gin.Context) (string, bool) {
+	val, exists := c.Get("user_id")
+	if !exists {
+		return "", false
+	}
+	userID, ok := val.(string)
+	return userID, ok
+}
 
 var jwtSecret []byte
 
