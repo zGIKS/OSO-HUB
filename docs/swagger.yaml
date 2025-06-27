@@ -27,6 +27,17 @@ definitions:
     - email
     - password
     type: object
+  handlers.UpdateUserRequest:
+    properties:
+      bio:
+        type: string
+      password:
+        type: string
+      profile_picture_url:
+        type: string
+      username:
+        type: string
+    type: object
   handlers.UploadImageRequest:
     properties:
       image_url:
@@ -506,6 +517,51 @@ paths:
       summary: Get all images for a user (profile)
       tags:
       - Images
+  /users/me:
+    patch:
+      consumes:
+      - application/json
+      description: Allows the user to update their username, bio, profile picture,
+        and/or password
+      parameters:
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update the authenticated user's profile
+      tags:
+      - Auth & Users
 securityDefinitions:
   BearerAuth:
     in: header
