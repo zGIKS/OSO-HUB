@@ -47,20 +47,20 @@ func LikeImage(c *gin.Context) {
 		return
 	}
 	var exists gocql.UUID
-	err = db.Session.Query(`SELECT user_id FROM likes_by_image WHERE image_id = ? AND user_id = ?`, imageID, userID).Scan(&exists)
+	err = db.GetSession().Query(`SELECT user_id FROM likes_by_image WHERE image_id = ? AND user_id = ?`, imageID, userID).Scan(&exists)
 	if err == nil {
 		c.Status(http.StatusNoContent)
 		return
 	}
 	now := time.Now()
-	if err := db.Session.Query(`INSERT INTO likes_by_image (image_id, user_id, liked_at) VALUES (?, ?, ?)`, imageID, userID, now).Exec(); err != nil {
+	if err := db.GetSession().Query(`INSERT INTO likes_by_image (image_id, user_id, liked_at) VALUES (?, ?, ?)`, imageID, userID, now).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Error liking image. Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
 		})
 		return
 	}
-	if err := db.Session.Query(`UPDATE image_counters SET likes = likes + 1 WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`UPDATE image_counters SET likes = likes + 1 WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Error updating like counter. Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
@@ -105,14 +105,14 @@ func UnlikeImage(c *gin.Context) {
 		})
 		return
 	}
-	if err := db.Session.Query(`DELETE FROM likes_by_image WHERE image_id = ? AND user_id = ?`, imageID, userID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM likes_by_image WHERE image_id = ? AND user_id = ?`, imageID, userID).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Error removing like. Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
 		})
 		return
 	}
-	if err := db.Session.Query(`UPDATE image_counters SET likes = likes - 1 WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`UPDATE image_counters SET likes = likes - 1 WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Error updating like counter. Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
@@ -141,7 +141,7 @@ func GetImageLikesCount(c *gin.Context) {
 		return
 	}
 	var likes int64
-	err = db.Session.Query(`SELECT likes FROM image_counters WHERE image_id = ?`, imageID).Scan(&likes)
+	err = db.GetSession().Query(`SELECT likes FROM image_counters WHERE image_id = ?`, imageID).Scan(&likes)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":         "Image not found or no likes.",
@@ -180,7 +180,7 @@ func DeleteImage(c *gin.Context) {
 	var ownerID gocql.UUID
 	var dayBucket string
 	var uploadedAt time.Time
-	err := db.Session.Query(`SELECT user_id, day_bucket, uploaded_at FROM images_by_id WHERE image_id = ?`, imageID).Scan(&ownerID, &dayBucket, &uploadedAt)
+	err := db.GetSession().Query(`SELECT user_id, day_bucket, uploaded_at FROM images_by_id WHERE image_id = ?`, imageID).Scan(&ownerID, &dayBucket, &uploadedAt)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Image not found"})
 		return
@@ -191,12 +191,12 @@ func DeleteImage(c *gin.Context) {
 	}
 
 	// Borra de images_by_id
-	if err := db.Session.Query(`DELETE FROM images_by_id WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM images_by_id WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(500, gin.H{"error": "Error deleting image (by_id)"})
 		return
 	}
 	// Borra de images_by_date
-	if err := db.Session.Query(`DELETE FROM images_by_date WHERE day_bucket = ? AND uploaded_at = ? AND image_id = ?`, dayBucket, uploadedAt, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM images_by_date WHERE day_bucket = ? AND uploaded_at = ? AND image_id = ?`, dayBucket, uploadedAt, imageID).Exec(); err != nil {
 		c.JSON(500, gin.H{
 			"error":         "Error deleting image (by_date). Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
@@ -204,22 +204,22 @@ func DeleteImage(c *gin.Context) {
 		return
 	}
 	// Borra de images_by_user
-	if err := db.Session.Query(`DELETE FROM images_by_user WHERE user_id = ? AND uploaded_at = ? AND image_id = ?`, ownerID, uploadedAt, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM images_by_user WHERE user_id = ? AND uploaded_at = ? AND image_id = ?`, ownerID, uploadedAt, imageID).Exec(); err != nil {
 		c.JSON(500, gin.H{"error": "Error deleting image (by_user)"})
 		return
 	}
 	// Borra de image_counters
-	if err := db.Session.Query(`DELETE FROM image_counters WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM image_counters WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(500, gin.H{"error": "Error deleting image (counters)"})
 		return
 	}
 	// Borra de likes_by_image
-	if err := db.Session.Query(`DELETE FROM likes_by_image WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM likes_by_image WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(500, gin.H{"error": "Error deleting image (likes)"})
 		return
 	}
 	// Borra de reports_by_image
-	if err := db.Session.Query(`DELETE FROM reports_by_image WHERE image_id = ?`, imageID).Exec(); err != nil {
+	if err := db.GetSession().Query(`DELETE FROM reports_by_image WHERE image_id = ?`, imageID).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Error deleting image (reports). Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
@@ -268,13 +268,13 @@ func UploadImage(c *gin.Context) {
 	dayBucket := uploadedAt.Format("2006-01-02")
 
 	// Insert into images_by_id
-	if err := db.Session.Query(`INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	if err := db.GetSession().Query(`INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		imageID, dayBucket, uploadedAt, userID, req.Username, req.ImageURL, req.Title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_id)"})
 		return
 	}
 	// Insert into images_by_date
-	if err := db.Session.Query(`INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	if err := db.GetSession().Query(`INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		dayBucket, uploadedAt, imageID, userID, req.Username, req.ImageURL, req.Title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Could not save image (by_date). Please try again later.",
@@ -283,7 +283,7 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 	// Insert into images_by_user
-	if err := db.Session.Query(`INSERT INTO images_by_user (user_id, uploaded_at, image_id, image_url, title) VALUES (?, ?, ?, ?, ?)`,
+	if err := db.GetSession().Query(`INSERT INTO images_by_user (user_id, uploaded_at, image_id, image_url, title) VALUES (?, ?, ?, ?, ?)`,
 		userID, uploadedAt, imageID, req.ImageURL, req.Title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_user)"})
 		return
@@ -320,7 +320,7 @@ func GetImagesByUser(c *gin.Context) {
 		return
 	}
 	query := `SELECT uploaded_at, image_id, image_url, title FROM images_by_user WHERE user_id = ?`
-	iter := db.Session.Query(query, userID).Iter()
+	iter := db.GetSession().Query(query, userID).Iter()
 	var images []models.Image
 	var img models.Image
 	for iter.Scan(&img.UploadedAt, &img.ImageID, &img.ImageURL, &img.Title) {
@@ -358,7 +358,7 @@ func GetImageByIDByOnlyID(c *gin.Context) {
 	}
 	var image models.Image
 	query := `SELECT image_id, day_bucket, uploaded_at, user_id, username, image_url, title FROM images_by_id WHERE image_id = ? LIMIT 1`
-	if err := db.Session.Query(query, imageID).Consistency(gocql.One).Scan(
+	if err := db.GetSession().Query(query, imageID).Consistency(gocql.One).Scan(
 		&image.ImageID, &image.DayBucket, &image.UploadedAt, &image.UserID, &image.Username, &image.ImageURL, &image.Title,
 	); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{

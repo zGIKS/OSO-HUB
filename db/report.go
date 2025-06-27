@@ -19,7 +19,7 @@ func InsertReport(reportID, imageID, userID, reason string, createdAt time.Time)
 	if err != nil {
 		return err
 	}
-	return Session.Query(`
+	return GetSession().Query(`
 		INSERT INTO reports_by_image (image_id, report_id, reporter_id, reason, reported_at)
 		VALUES (?, ?, ?, ?, ?)`,
 		imgUUID, repUUID, reporterUUID, reason, createdAt,
@@ -27,14 +27,14 @@ func InsertReport(reportID, imageID, userID, reason string, createdAt time.Time)
 }
 
 func IncrementImageReportCounter(imageID string) error {
-	return Session.Query(`
+	return GetSession().Query(`
 		UPDATE image_counters SET reports = reports + 1 WHERE image_id = ?`,
 		imageID,
 	).Exec()
 }
 
 func GetReportsByImage(imageID string) ([]map[string]interface{}, error) {
-	iter := Session.Query(`
+	iter := GetSession().Query(`
 		SELECT report_id, reporter_id, reason, reported_at FROM reports_by_image WHERE image_id = ?`,
 		imageID,
 	).Iter()
@@ -49,7 +49,7 @@ func GetReportsByImage(imageID string) ([]map[string]interface{}, error) {
 
 func GetImageReportCount(imageID string) (int, error) {
 	var count int
-	err := Session.Query(`
+	err := GetSession().Query(`
 		SELECT reports FROM image_counters WHERE image_id = ?`,
 		imageID,
 	).Scan(&count)

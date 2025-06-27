@@ -33,7 +33,7 @@ func GetFeed(c *gin.Context) {
 	}
 
 	query := `SELECT image_id, user_id, username, image_url, title, uploaded_at FROM images_by_date WHERE day_bucket = ? LIMIT ?`
-	iter := db.Session.Query(query, dayBucket, limit).Iter()
+	iter := db.GetSession().Query(query, dayBucket, limit).Iter()
 	var images []models.Image
 	var img models.Image
 	for iter.Scan(&img.ImageID, &img.UserID, &img.Username, &img.ImageURL, &img.Title, &img.UploadedAt) {
