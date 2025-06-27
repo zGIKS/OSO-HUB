@@ -69,6 +69,7 @@ func main() {
 	r.DELETE("/images/:image_id/like", middleware.AuthMiddleware(), handlers.UnlikeImage)
 	r.GET("/images/:image_id/likes/count", handlers.GetImageLikesCount)
 	r.DELETE("/images/:image_id", middleware.AuthMiddleware(), handlers.DeleteImage)
+	r.PATCH("/users/me", middleware.AuthMiddleware(), handlers.UpdateOwnUser)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/users/:user_id", handlers.GetUserByID)
