@@ -46,11 +46,22 @@ func InitCassandra() {
 		// Use Consistency QUORUM for strong consistency: with 3 nodes and RF=3, at least 2 nodes must acknowledge
 		cluster.Consistency = gocql.Quorum
 		cluster.Timeout = 10 * time.Second
-		session, err := cluster.CreateSession()
-		if err != nil {
-			log.Fatalf("Error connecting to local Cassandra: %v", err)
+
+		maxRetries := 0 // 0 = infinito
+		retryDelay := 10 * time.Second
+
+		for attempts := 0; maxRetries == 0 || attempts < maxRetries; attempts++ {
+			session, err := cluster.CreateSession()
+			if err == nil {
+				LocalSession = session
+				break
+			}
+			log.Printf("Error connecting to Cassandra: %v. Retrying in %v...", err, retryDelay)
+			time.Sleep(retryDelay)
 		}
-		LocalSession = session
+		if LocalSession == nil {
+			log.Fatal("Could not connect to any Cassandra node after retries")
+		}
 	}
 
 	// Astra
