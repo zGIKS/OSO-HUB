@@ -101,8 +101,13 @@ const docTemplate = `{
         },
         "/images": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -110,16 +115,21 @@ const docTemplate = `{
                 "tags": [
                     "Images"
                 ],
-                "summary": "Upload a new image",
+                "summary": "Upload a new image file to Cloudinary",
                 "parameters": [
                     {
-                        "description": "Image data",
+                        "type": "file",
+                        "description": "Image file (JPG, PNG, GIF, WebP, max 10MB)",
                         "name": "image",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UploadImageRequest"
-                        }
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image title (max 100 characters)",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -131,6 +141,13 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -766,29 +783,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_picture_url": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.UploadImageRequest": {
-            "type": "object",
-            "required": [
-                "image_url",
-                "title",
-                "user_id",
-                "username"
-            ],
-            "properties": {
-                "image_url": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "user_id": {
                     "type": "string"
                 },
                 "username": {

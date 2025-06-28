@@ -38,22 +38,6 @@ definitions:
       username:
         type: string
     type: object
-  handlers.UploadImageRequest:
-    properties:
-      image_url:
-        type: string
-      title:
-        type: string
-      user_id:
-        type: string
-      username:
-        type: string
-    required:
-    - image_url
-    - title
-    - user_id
-    - username
-    type: object
   models.Image:
     properties:
       day_bucket:
@@ -162,14 +146,18 @@ paths:
   /images:
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       parameters:
-      - description: Image data
-        in: body
+      - description: Image file (JPG, PNG, GIF, WebP, max 10MB)
+        in: formData
         name: image
         required: true
-        schema:
-          $ref: '#/definitions/handlers.UploadImageRequest'
+        type: file
+      - description: Image title (max 100 characters)
+        in: formData
+        name: title
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -182,12 +170,19 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
-      summary: Upload a new image
+      security:
+      - BearerAuth: []
+      summary: Upload a new image file to Cloudinary
       tags:
       - Images
   /images/{image_id}:

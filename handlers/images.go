@@ -1,11 +1,18 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"osohub/db"
 	"osohub/models"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
@@ -229,37 +236,141 @@ func DeleteImage(c *gin.Context) {
 	c.Status(204)
 }
 
-// UploadImageRequest is the expected body for uploading an image
+// UploadImageRequest is the expected body for uploading an image (deprecated, now uses form-data)
 type UploadImageRequest struct {
-	UserID   string `json:"user_id" binding:"required"`
-	Username string `json:"username" binding:"required"`
 	ImageURL string `json:"image_url" binding:"required"`
 	Title    string `json:"title" binding:"required"`
 }
 
 // UploadImage godoc
-// @Summary Upload a new image
-// @Accept json
+// @Summary Upload a new image file to Cloudinary
+// @Accept multipart/form-data
 // @Produce json
-// @Param image body UploadImageRequest true "Image data"
+// @Security BearerAuth
+// @Param image formData file true "Image file (JPG, PNG, GIF, WebP, max 10MB)"
+// @Param title formData string true "Image title (max 100 characters)"
 // @Success 201 {object} models.Image
 // @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /images [post]
 // @Tags Images
 func UploadImage(c *gin.Context) {
-	var req UploadImageRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":         "Invalid image data. Required fields: image_url, title, user_id, username.",
-			"documentation": "https://docs.osohub.com/images#upload",
+	// Obtener user_id del token JWT
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":         "Unauthorized. Valid JWT token required.",
+			"documentation": "https://docs.osohub.com/auth#jwt",
 		})
 		return
 	}
 
-	userID, err := gocql.ParseUUID(req.UserID)
+	userID, err := gocql.ParseUUID(userIDStr.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id in token"})
+		return
+	}
+
+	// Obtener archivo de imagen
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "No image file uploaded. Use 'image' field in form-data.",
+		})
+		return
+	}
+
+	// Validar tipo de archivo
+	allowedTypes := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	fileExt := strings.ToLower(filepath.Ext(file.Filename))
+	isValidType := false
+	for _, ext := range allowedTypes {
+		if fileExt == ext {
+			isValidType = true
+			break
+		}
+	}
+	if !isValidType {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid file type. Allowed: JPG, PNG, GIF, WebP",
+		})
+		return
+	}
+
+	// Validar tamaño (máximo 10MB)
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "File too large. Maximum size: 10MB",
+		})
+		return
+	}
+
+	// Obtener título
+	title := c.PostForm("title")
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Title is required",
+		})
+		return
+	}
+
+	// Validar longitud del título
+	if len(title) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Title too long. Maximum 100 characters.",
+		})
+		return
+	}
+	// Configurar Cloudinary usando CLOUDINARY_URL (método recomendado)
+	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
+	if cloudinaryURL == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "CLOUDINARY_URL not configured"})
+		return
+	}
+
+	fmt.Printf("DEBUG Cloudinary URL: %s\n", cloudinaryURL)
+
+	cld, err := cloudinary.NewFromURL(cloudinaryURL)
+	if err != nil {
+		fmt.Printf("DEBUG Cloudinary config error: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary configuration error"})
+		return
+	}
+
+	// Abrir archivo
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not open uploaded file"})
+		return
+	}
+	defer src.Close()
+
+	// Subir a Cloudinary
+	uploadParams := uploader.UploadParams{
+		PublicID: fmt.Sprintf("osohub/%d_%s", time.Now().Unix(), strings.TrimSuffix(file.Filename, fileExt)),
+		Folder:   "osohub-images",
+	}
+
+	fmt.Printf("DEBUG Upload params: %+v\n", uploadParams)
+
+	result, err := cld.Upload.Upload(context.Background(), src, uploadParams)
+	if err != nil {
+		fmt.Printf("DEBUG Cloudinary upload error: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image to Cloudinary", "details": err.Error()})
+		return
+	}
+
+	fmt.Printf("DEBUG Cloudinary result: %+v\n", result)
+
+	// URL de Cloudinary (ya optimizada)
+	imageURL := result.SecureURL
+	fmt.Printf("DEBUG imageURL: %s\n", imageURL)
+
+	// Obtener información del usuario para el username
+	var username string
+	if err := db.GetSession().Query(`SELECT username FROM users_by_id WHERE user_id = ?`, userID).Scan(&username); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -269,22 +380,24 @@ func UploadImage(c *gin.Context) {
 
 	// Insert into images_by_id
 	if err := db.GetSession().Query(`INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		imageID, dayBucket, uploadedAt, userID, req.Username, req.ImageURL, req.Title).Exec(); err != nil {
+		imageID, dayBucket, uploadedAt, userID, username, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_id)"})
 		return
 	}
+
 	// Insert into images_by_date
 	if err := db.GetSession().Query(`INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		dayBucket, uploadedAt, imageID, userID, req.Username, req.ImageURL, req.Title).Exec(); err != nil {
+		dayBucket, uploadedAt, imageID, userID, username, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Could not save image (by_date). Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
 		})
 		return
 	}
+
 	// Insert into images_by_user
 	if err := db.GetSession().Query(`INSERT INTO images_by_user (user_id, uploaded_at, image_id, image_url, title) VALUES (?, ?, ?, ?, ?)`,
-		userID, uploadedAt, imageID, req.ImageURL, req.Title).Exec(); err != nil {
+		userID, uploadedAt, imageID, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_user)"})
 		return
 	}
@@ -294,9 +407,9 @@ func UploadImage(c *gin.Context) {
 		DayBucket:  dayBucket,
 		UploadedAt: uploadedAt,
 		UserID:     userID,
-		Username:   req.Username,
-		ImageURL:   req.ImageURL,
-		Title:      req.Title,
+		Username:   username,
+		ImageURL:   imageURL,
+		Title:      title,
 	}
 	c.JSON(http.StatusCreated, image)
 }

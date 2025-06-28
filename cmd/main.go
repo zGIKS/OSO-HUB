@@ -32,11 +32,12 @@ import (
 // @tag.description Endpoints for image management and feed
 
 func main() {
-	// Load environment variables from .env.astra
-	err := godotenv.Load(".env.astra")
+	// Load environment variables from .env
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Println("Could not load .env.astra file, using system environment variables")
+		log.Println("Could not load .env file, using system environment variables")
 	}
+
 	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET")) // DEBUG: Check loaded value
 
 	// Set Gin mode from env (default: debug)
@@ -115,7 +116,7 @@ func main() {
 	r.PATCH("/users/:user_id/ban", handlers.BanUser)
 	r.POST("/auth/login", handlers.Login)
 	r.GET("/images/byid/:image_id", handlers.GetImageByIDByOnlyID)
-	r.POST("/images", handlers.UploadImage)
+	r.POST("/images", middleware.AuthMiddleware(), handlers.UploadImage)
 	r.GET("/users/:user_id/images", handlers.GetImagesByUser)
 	r.GET("/feed", handlers.GetFeed)
 	r.POST("/images/:image_id/report", middleware.AuthMiddleware(), handlers.ReportImage)
