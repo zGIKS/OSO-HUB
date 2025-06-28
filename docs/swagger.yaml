@@ -27,17 +27,6 @@ definitions:
     - email
     - password
     type: object
-  handlers.UpdateUserRequest:
-    properties:
-      bio:
-        type: string
-      password:
-        type: string
-      profile_picture_url:
-        type: string
-      username:
-        type: string
-    type: object
   models.Image:
     properties:
       day_bucket:
@@ -51,6 +40,8 @@ definitions:
       uploaded_at:
         type: string
       user_id:
+        type: string
+      user_profile_picture_url:
         type: string
       username:
         type: string
@@ -513,18 +504,57 @@ paths:
       tags:
       - Images
   /users/me:
+    get:
+      description: Get the profile information of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current authenticated user info
+      tags:
+      - Auth & Users
     patch:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Allows the user to update their username, bio, profile picture,
         and/or password
       parameters:
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.UpdateUserRequest'
+      - description: New username
+        in: formData
+        name: username
+        type: string
+      - description: New bio
+        in: formData
+        name: bio
+        type: string
+      - description: New profile picture (JPG, PNG, WebP, max 10MB)
+        in: formData
+        name: profile_picture
+        type: file
+      - description: New password
+        in: formData
+        name: password
+        type: string
       produces:
       - application/json
       responses:

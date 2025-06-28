@@ -99,6 +99,7 @@ func main() {
 	r.DELETE("/images/:image_id/like", middleware.AuthMiddleware(), handlers.UnlikeImage)
 	r.GET("/images/:image_id/likes/count", handlers.GetImageLikesCount)
 	r.DELETE("/images/:image_id", middleware.AuthMiddleware(), handlers.DeleteImage)
+	r.GET("/users/me", middleware.AuthMiddleware(), handlers.GetCurrentUser)
 	r.PATCH("/users/me", middleware.AuthMiddleware(), handlers.UpdateOwnUser)
 
 	// Ruta raíz con información de la API

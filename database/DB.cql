@@ -2,8 +2,6 @@ CREATE KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', '
 
 USE osohub;
 
-
-
 -- 7. Tabla para búsqueda directa por image_id
 CREATE TABLE IF NOT EXISTS images_by_id (
   image_id uuid PRIMARY KEY,
@@ -11,6 +9,7 @@ CREATE TABLE IF NOT EXISTS images_by_id (
   uploaded_at timestamp,
   user_id uuid,
   username text,
+  user_profile_picture_url text,
   image_url text,
   title text
 );
@@ -33,6 +32,7 @@ CREATE TABLE IF NOT EXISTS images_by_date (
   image_id uuid,
   user_id uuid,
   username text,
+  user_profile_picture_url text,
   image_url text,
   title text,
   PRIMARY KEY ((day_bucket), uploaded_at, image_id)
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS images_by_user (
   user_id uuid,
   uploaded_at timestamp,
   image_id uuid,
+  user_profile_picture_url text,
   image_url text,
   title text,
   PRIMARY KEY (user_id, uploaded_at, image_id)

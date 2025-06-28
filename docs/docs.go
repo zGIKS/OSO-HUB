@@ -533,6 +533,50 @@ const docTemplate = `{
             }
         },
         "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the profile information of the currently authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth \u0026 Users"
+                ],
+                "summary": "Get current authenticated user info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "patch": {
                 "security": [
                     {
@@ -541,7 +585,7 @@ const docTemplate = `{
                 ],
                 "description": "Allows the user to update their username, bio, profile picture, and/or password",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -552,13 +596,28 @@ const docTemplate = `{
                 "summary": "Update the authenticated user's profile",
                 "parameters": [
                     {
-                        "description": "Fields to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UpdateUserRequest"
-                        }
+                        "type": "string",
+                        "description": "New username",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "New bio",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New profile picture (JPG, PNG, WebP, max 10MB)",
+                        "name": "profile_picture",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "New password",
+                        "name": "password",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -773,23 +832,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "bio": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "profile_picture_url": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Image": {
             "type": "object",
             "properties": {
@@ -809,6 +851,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                },
+                "user_profile_picture_url": {
                     "type": "string"
                 },
                 "username": {

@@ -137,3 +137,50 @@ func BanUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User updated", "role": newRole})
 }
+
+// GetCurrentUser godoc
+// @Summary Get current authenticated user info
+// @Description Get the profile information of the currently authenticated user
+// @Tags Auth & Users
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.User
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /users/me [get]
+func GetCurrentUser(c *gin.Context) {
+	// Get user ID from JWT token
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":         "Unauthorized. Valid JWT token required.",
+			"documentation": "https://docs.osohub.com/auth#jwt",
+		})
+		return
+	}
+
+	userID, err := gocql.ParseUUID(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id in token"})
+		return
+	}
+
+	// Query user from database
+	var user models.User
+	query := `SELECT user_id, username, email, profile_picture_url, bio, role, created_at FROM users_by_id WHERE user_id = ?`
+	if err := db.GetSession().Query(query, userID).Scan(
+		&user.UserID, &user.Username, &user.Email, &user.ProfilePictureURL, &user.Bio, &user.Role, &user.CreatedAt,
+	); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":         "User not found",
+			"documentation": "https://docs.osohub.com/users#get",
+		})
+		return
+	}
+
+	// Don't return password hash
+	user.PasswordHash = ""
+
+	c.JSON(http.StatusOK, user)
+}

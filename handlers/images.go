@@ -367,9 +367,9 @@ func UploadImage(c *gin.Context) {
 	imageURL := result.SecureURL
 	fmt.Printf("DEBUG imageURL: %s\n", imageURL)
 
-	// Obtener información del usuario para el username
-	var username string
-	if err := db.GetSession().Query(`SELECT username FROM users_by_id WHERE user_id = ?`, userID).Scan(&username); err != nil {
+	// Obtener información del usuario para el username y profile_picture_url
+	var username, userProfilePictureURL string
+	if err := db.GetSession().Query(`SELECT username, profile_picture_url FROM users_by_id WHERE user_id = ?`, userID).Scan(&username, &userProfilePictureURL); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}
@@ -379,15 +379,15 @@ func UploadImage(c *gin.Context) {
 	dayBucket := uploadedAt.Format("2006-01-02")
 
 	// Insert into images_by_id
-	if err := db.GetSession().Query(`INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		imageID, dayBucket, uploadedAt, userID, username, imageURL, title).Exec(); err != nil {
+	if err := db.GetSession().Query(`INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, user_profile_picture_url, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		imageID, dayBucket, uploadedAt, userID, username, userProfilePictureURL, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_id)"})
 		return
 	}
 
 	// Insert into images_by_date
-	if err := db.GetSession().Query(`INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		dayBucket, uploadedAt, imageID, userID, username, imageURL, title).Exec(); err != nil {
+	if err := db.GetSession().Query(`INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, user_profile_picture_url, image_url, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		dayBucket, uploadedAt, imageID, userID, username, userProfilePictureURL, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":         "Could not save image (by_date). Please try again later.",
 			"documentation": "https://docs.osohub.com/errors#internal",
@@ -396,20 +396,21 @@ func UploadImage(c *gin.Context) {
 	}
 
 	// Insert into images_by_user
-	if err := db.GetSession().Query(`INSERT INTO images_by_user (user_id, uploaded_at, image_id, image_url, title) VALUES (?, ?, ?, ?, ?)`,
-		userID, uploadedAt, imageID, imageURL, title).Exec(); err != nil {
+	if err := db.GetSession().Query(`INSERT INTO images_by_user (user_id, uploaded_at, image_id, user_profile_picture_url, image_url, title) VALUES (?, ?, ?, ?, ?, ?)`,
+		userID, uploadedAt, imageID, userProfilePictureURL, imageURL, title).Exec(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving image (by_user)"})
 		return
 	}
 
 	image := models.Image{
-		ImageID:    imageID,
-		DayBucket:  dayBucket,
-		UploadedAt: uploadedAt,
-		UserID:     userID,
-		Username:   username,
-		ImageURL:   imageURL,
-		Title:      title,
+		ImageID:               imageID,
+		DayBucket:             dayBucket,
+		UploadedAt:            uploadedAt,
+		UserID:                userID,
+		Username:              username,
+		UserProfilePictureURL: userProfilePictureURL,
+		ImageURL:              imageURL,
+		Title:                 title,
 	}
 	c.JSON(http.StatusCreated, image)
 }
@@ -432,12 +433,28 @@ func GetImagesByUser(c *gin.Context) {
 		})
 		return
 	}
+
+	// First get user info (username and profile picture)
+	var username, userProfilePictureURL string
+	userQuery := `SELECT username, profile_picture_url FROM users_by_id WHERE user_id = ?`
+	if err := db.GetSession().Query(userQuery, userID).Scan(&username, &userProfilePictureURL); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":         "User not found.",
+			"documentation": "https://docs.osohub.com/users#images",
+		})
+		return
+	}
+
+	// Then get user's images
 	query := `SELECT uploaded_at, image_id, image_url, title FROM images_by_user WHERE user_id = ?`
 	iter := db.GetSession().Query(query, userID).Iter()
 	var images []models.Image
 	var img models.Image
 	for iter.Scan(&img.UploadedAt, &img.ImageID, &img.ImageURL, &img.Title) {
 		img.UserID = userID
+		img.Username = username
+		// Usar siempre la foto de perfil actual del usuario, no la guardada en las imágenes
+		img.UserProfilePictureURL = userProfilePictureURL
 		images = append(images, img)
 	}
 	if err := iter.Close(); err != nil {
@@ -480,5 +497,13 @@ func GetImageByIDByOnlyID(c *gin.Context) {
 		})
 		return
 	}
+
+	// Get current user profile picture
+	var userProfilePictureURL string
+	userQuery := `SELECT profile_picture_url FROM users_by_id WHERE user_id = ?`
+	if err := db.GetSession().Query(userQuery, image.UserID).Scan(&userProfilePictureURL); err == nil {
+		image.UserProfilePictureURL = userProfilePictureURL
+	}
+
 	c.JSON(http.StatusOK, image)
 }
