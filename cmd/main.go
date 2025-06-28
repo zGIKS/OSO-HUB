@@ -10,7 +10,9 @@ import (
 	_ "osohub/docs" // swaggo docs
 	"osohub/handlers"
 	"osohub/middleware"
+	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +58,33 @@ func main() {
 
 	r := gin.Default()
 
+	// Configurar CORS para permitir conexiones desde React y Vite
+	config := cors.DefaultConfig()
+
+	// Leer orígenes permitidos desde .env
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOrigins != "" {
+		config.AllowOrigins = strings.Split(allowedOrigins, ",")
+	} else {
+		// Fallback por defecto
+		config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173"}
+	}
+
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
+	config.AllowCredentials = true
+	config.ExposeHeaders = []string{"Content-Length"}
+	r.Use(cors.New(config))
+
+	// Middleware adicional para manejar preflight OPTIONS manualmente
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Accept")
+		c.Header("Access-Control-Max-Age", "86400")
+		c.Status(200)
+	})
+
 	// Configure trusted proxies from .env
 	proxies := os.Getenv("TRUSTED_PROXIES")
 	proxyList := []string{}
@@ -70,6 +99,15 @@ func main() {
 	r.GET("/images/:image_id/likes/count", handlers.GetImageLikesCount)
 	r.DELETE("/images/:image_id", middleware.AuthMiddleware(), handlers.DeleteImage)
 	r.PATCH("/users/me", middleware.AuthMiddleware(), handlers.UpdateOwnUser)
+
+	// Ruta raíz con información de la API
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "OSOHUB API",
+			"version": "1.0",
+			"swagger": "/swagger/index.html",
+		})
+	})
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/users/:user_id", handlers.GetUserByID)
