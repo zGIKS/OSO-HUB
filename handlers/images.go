@@ -507,3 +507,70 @@ func GetImageByIDByOnlyID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, image)
 }
+
+// GetImageLikeStatus godoc
+// @Summary Check if current user has liked an image
+// @Produce json
+// @Param image_id path string true "Image ID"
+// @Success 200 {object} map[string]bool "Returns {'liked': true/false}"
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Security BearerAuth
+// @Router /images/{image_id}/like/status [get]
+// @Tags Images
+func GetImageLikeStatus(c *gin.Context) {
+	imageIDStr := c.Param("image_id")
+	imageID, err := gocql.ParseUUID(imageIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":         "Invalid image_id. Must be a valid UUID.",
+			"documentation": "https://docs.osohub.com/images#like-status",
+		})
+		return
+	}
+
+	userIDStr, ok := c.Get("user_id")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":         "Unauthorized.",
+			"documentation": "https://docs.osohub.com/auth#jwt",
+		})
+		return
+	}
+
+	userID, err := gocql.ParseUUID(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":         "Invalid user_id.",
+			"documentation": "https://docs.osohub.com/auth#jwt",
+		})
+		return
+	}
+
+	// Verificar si el usuario ya le dio like a esta imagen
+	var likedAt time.Time
+	query := `SELECT liked_at FROM likes_by_image WHERE image_id = ? AND user_id = ?`
+	err = db.GetSession().Query(query, imageID, userID).Consistency(gocql.One).Scan(&likedAt)
+
+	if err != nil {
+		if err == gocql.ErrNotFound {
+			// El usuario no le ha dado like a esta imagen
+			c.JSON(http.StatusOK, gin.H{
+				"liked": false,
+			})
+			return
+		}
+		// Error de base de datos
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":         "Database error while checking like status.",
+			"documentation": "https://docs.osohub.com/images#like-status",
+		})
+		return
+	}
+
+	// El usuario ya le dio like a esta imagen
+	c.JSON(http.StatusOK, gin.H{
+		"liked":    true,
+		"liked_at": likedAt,
+	})
+}

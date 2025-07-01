@@ -253,6 +253,38 @@ paths:
       summary: Like an image (one like per user)
       tags:
       - Images
+  /images/{image_id}/like/status:
+    get:
+      parameters:
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Returns {''liked'': true/false}'
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if current user has liked an image
+      tags:
+      - Images
   /images/{image_id}/likes/count:
     get:
       parameters:

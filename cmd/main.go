@@ -97,6 +97,7 @@ func main() {
 	}
 	r.POST("/images/:image_id/like", middleware.AuthMiddleware(), handlers.LikeImage)
 	r.DELETE("/images/:image_id/like", middleware.AuthMiddleware(), handlers.UnlikeImage)
+	r.GET("/images/:image_id/like/status", middleware.AuthMiddleware(), handlers.GetImageLikeStatus)
 	r.GET("/images/:image_id/likes/count", handlers.GetImageLikesCount)
 	r.DELETE("/images/:image_id", middleware.AuthMiddleware(), handlers.DeleteImage)
 	r.GET("/users/me", middleware.AuthMiddleware(), handlers.GetCurrentUser)

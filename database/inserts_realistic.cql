@@ -24,7 +24,7 @@ INSERT INTO images_by_id (image_id, day_bucket, uploaded_at, user_id, username, 
 VALUES (f2a3b4c5-d6e7-8901-2345-678901bcdef2, '2025-06-04', '2025-06-04 10:15:00', b2c3d4e5-f6a7-8901-2345-678901bcdefb, 'ana_design', 'https://images.unsplash.com/photo-1494790108755-2616b612b4b0?w=150&h=150&fit=crop&crop=face', 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=600&fit=crop', 'Líneas perfectas en el centro de Barcelona 🏢');
 
 INSERT INTO images_by_date (day_bucket, uploaded_at, image_id, user_id, username, user_profile_picture_url, image_url, title)
-VALUES ('2025-06-04', '2025-06-04 10:15:00', f2a3b4c5-d6e7-8901-2345-678901bcdef2, b2c3d4e5-f6a7-8901-2345-678901bcdefb, 'ana_design', 'https://images.unsplash.com/photo-1494790108755-2616b612b4b0?w=150&h=150&fit=crop&crop=face', 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=600&fit=crop', 'Líneas perfectas en el centro de Barcelona 🏢');
+VALUES ('2025-06-04', '2025-06-04 10:15:00', f2a3b4c5-d6e7-8901-2345-678901bcdef2, b2c3d4e5-f6a7-8901-2345-678901bcdefb, 'ana_design', 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=150&h=150&fit=crop&crop=face', 'Líneas perfectas en el centro de Barcelona 🏢');
 
 INSERT INTO images_by_user (user_id, uploaded_at, image_id, user_profile_picture_url, image_url, title)
 VALUES (b2c3d4e5-f6a7-8901-2345-678901bcdefb, '2025-06-04 10:15:00', f2a3b4c5-d6e7-8901-2345-678901bcdef2, 'https://images.unsplash.com/photo-1494790108755-2616b612b4b0?w=150&h=150&fit=crop&crop=face', 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=600&fit=crop', 'Líneas perfectas en el centro de Barcelona 🏢');
