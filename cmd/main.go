@@ -127,6 +127,8 @@ func main() {
 	r.GET("/feed", handlers.GetFeed)
 	r.POST("/images/:image_id/report", middleware.AuthMiddleware(), handlers.ReportImage)
 	r.GET("/images/:image_id/reports/count", handlers.GetImageReportsCount)
+	r.GET("/reports/categories", handlers.GetReportCategories)
+	r.GET("/reports/by-category", middleware.AuthMiddleware(), handlers.GetReportsByCategory)
 
 	port := os.Getenv("PORT")
 	if port == "" {

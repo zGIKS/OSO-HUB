@@ -27,6 +27,15 @@ definitions:
     - email
     - password
     type: object
+  handlers.ReportCategory:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   models.Image:
     properties:
       day_bucket:
@@ -48,10 +57,14 @@ definitions:
     type: object
   models.ReportRequest:
     properties:
+      category:
+        description: 'ID de la categoría (ej: "harassment", "hate", etc.)'
+        type: string
       reason:
+        description: Descripción adicional opcional
         type: string
     required:
-    - reason
+    - category
     type: object
   models.User:
     properties:
@@ -446,6 +459,60 @@ paths:
       summary: Get public profile by username (no authentication required)
       tags:
       - Auth & Users
+  /reports/by-category:
+    get:
+      description: Get reports grouped by category for moderation purposes
+      parameters:
+      - description: Filter by specific category
+        in: query
+        name: category
+        type: string
+      - description: 'Limit number of results (default: 50)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get reports grouped by category (Admin only)
+      tags:
+      - Images
+  /reports/categories:
+    get:
+      description: Get list of available categories for reporting content
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/handlers.ReportCategory'
+              type: array
+            type: object
+      summary: Get available report categories
+      tags:
+      - Images
   /users:
     post:
       consumes:

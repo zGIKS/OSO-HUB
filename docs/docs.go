@@ -578,6 +578,90 @@ const docTemplate = `{
                 }
             }
         },
+        "/reports/by-category": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get reports grouped by category for moderation purposes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Get reports grouped by category (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by specific category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results (default: 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reports/categories": {
+            "get": {
+                "description": "Get list of available categories for reporting content",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Get available report categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/handlers.ReportCategory"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "post": {
                 "consumes": [
@@ -959,6 +1043,20 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.ReportCategory": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Image": {
             "type": "object",
             "properties": {
@@ -991,10 +1089,15 @@ const docTemplate = `{
         "models.ReportRequest": {
             "type": "object",
             "required": [
-                "reason"
+                "category"
             ],
             "properties": {
+                "category": {
+                    "description": "ID de la categoría (ej: \"harassment\", \"hate\", etc.)",
+                    "type": "string"
+                },
                 "reason": {
+                    "description": "Descripción adicional opcional",
                     "type": "string"
                 }
             }

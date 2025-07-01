@@ -2,7 +2,7 @@ CREATE KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', '
 
 USE osohub;
 
--- 7. Tabla para búsqueda directa por image_id
+-- 8. Tabla para búsqueda directa por image_id
 CREATE TABLE IF NOT EXISTS images_by_id (
   image_id uuid PRIMARY KEY,
   day_bucket text,
@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS reports_by_image (
   image_id uuid,
   report_id timeuuid,
   reporter_id uuid,
-  reason text,
+  category text, -- Categoría del reporte: 'harassment', 'hate', 'spam', etc.
+  reason text,   -- Descripción adicional opcional
   reported_at timestamp,
   PRIMARY KEY (image_id, report_id)
 ) WITH CLUSTERING ORDER BY (report_id DESC);
@@ -79,5 +80,16 @@ CREATE TABLE IF NOT EXISTS likes_by_image (
   liked_at timestamp,
   PRIMARY KEY (image_id, user_id)
 );
+
+-- 7. Tabla de reportes agrupados por categoría (para análisis y moderación)
+CREATE TABLE IF NOT EXISTS reports_by_category (
+  category text,
+  reported_at timestamp,
+  report_id timeuuid,
+  image_id uuid,
+  reporter_id uuid,
+  reason text,
+  PRIMARY KEY (category, reported_at, report_id)
+) WITH CLUSTERING ORDER BY (reported_at DESC, report_id DESC);
 
 
