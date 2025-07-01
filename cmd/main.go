@@ -102,6 +102,7 @@ func main() {
 	r.DELETE("/images/:image_id", middleware.AuthMiddleware(), handlers.DeleteImage)
 	r.GET("/users/me", middleware.AuthMiddleware(), handlers.GetCurrentUser)
 	r.PATCH("/users/me", middleware.AuthMiddleware(), handlers.UpdateOwnUser)
+	r.GET("/users/me/share-link", middleware.AuthMiddleware(), handlers.GetMyShareLink)
 
 	// Ruta raíz con información de la API
 	r.GET("/", func(c *gin.Context) {
@@ -111,6 +112,9 @@ func main() {
 			"swagger": "/swagger/index.html",
 		})
 	})
+
+	// Ruta pública para perfiles (sin autenticación)
+	r.GET("/profile/:username", handlers.GetPublicProfile)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/users/:user_id", handlers.GetUserByID)

@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS images_by_date (
 -- Índice secundario para email en users_by_id
 CREATE INDEX IF NOT EXISTS users_by_id_email_idx ON users_by_id (email);
 
+-- Índice secundario para username en users_by_id (para búsqueda de perfiles públicos)
+CREATE INDEX IF NOT EXISTS users_by_id_username_idx ON users_by_id (username);
+
 -- 3. Tabla para publicaciones por usuario (perfil)
 CREATE TABLE IF NOT EXISTS images_by_user (
   user_id uuid,

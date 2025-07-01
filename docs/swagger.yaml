@@ -417,6 +417,35 @@ paths:
       summary: Get image by ID (direct, for Swagger compatibility)
       tags:
       - Images
+  /profile/{username}:
+    get:
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns user profile and their images
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get public profile by username (no authentication required)
+      tags:
+      - Auth & Users
   /users:
     post:
       consumes:
@@ -617,6 +646,27 @@ paths:
       security:
       - BearerAuth: []
       summary: Update the authenticated user's profile
+      tags:
+      - Auth & Users
+  /users/me/share-link:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns share_url
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get shareable link for current user's profile
       tags:
       - Auth & Users
 securityDefinitions:
