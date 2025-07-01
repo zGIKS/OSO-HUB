@@ -9,3 +9,4 @@ DROP TABLE IF EXISTS image_counters;
 DROP TABLE IF EXISTS likes_by_image;
 DROP TABLE IF EXISTS reports_by_image;
 DROP TABLE IF EXISTS users_by_id;
+DROP TABLE IF EXISTS reports_by_category;
