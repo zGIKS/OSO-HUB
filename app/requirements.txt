@@ -1,5 +1,0 @@
-# requirements.txt
-fastapi
-cassandra-driver
-uvicorn
-pydantic
