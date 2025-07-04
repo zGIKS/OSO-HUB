@@ -27,32 +27,14 @@ definitions:
     - email
     - password
     type: object
-  handlers.UpdateUserRequest:
+  handlers.ReportCategory:
     properties:
-      bio:
+      description:
         type: string
-      password:
+      id:
         type: string
-      profile_picture_url:
+      name:
         type: string
-      username:
-        type: string
-    type: object
-  handlers.UploadImageRequest:
-    properties:
-      image_url:
-        type: string
-      title:
-        type: string
-      user_id:
-        type: string
-      username:
-        type: string
-    required:
-    - image_url
-    - title
-    - user_id
-    - username
     type: object
   models.Image:
     properties:
@@ -68,15 +50,21 @@ definitions:
         type: string
       user_id:
         type: string
+      user_profile_picture_url:
+        type: string
       username:
         type: string
     type: object
   models.ReportRequest:
     properties:
+      category:
+        description: 'ID de la categoría (ej: "harassment", "hate", etc.)'
+        type: string
       reason:
+        description: Descripción adicional opcional
         type: string
     required:
-    - reason
+    - category
     type: object
   models.User:
     properties:
@@ -162,14 +150,18 @@ paths:
   /images:
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       parameters:
-      - description: Image data
-        in: body
+      - description: Image file (JPG, PNG, GIF, WebP, max 10MB)
+        in: formData
         name: image
         required: true
-        schema:
-          $ref: '#/definitions/handlers.UploadImageRequest'
+        type: file
+      - description: Image title (max 100 characters)
+        in: formData
+        name: title
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -182,12 +174,19 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
-      summary: Upload a new image
+      security:
+      - BearerAuth: []
+      summary: Upload a new image file to Cloudinary
       tags:
       - Images
   /images/{image_id}:
@@ -265,6 +264,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Like an image (one like per user)
+      tags:
+      - Images
+  /images/{image_id}/like/status:
+    get:
+      parameters:
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Returns {''liked'': true/false}'
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if current user has liked an image
       tags:
       - Images
   /images/{image_id}/likes/count:
@@ -399,6 +430,89 @@ paths:
       summary: Get image by ID (direct, for Swagger compatibility)
       tags:
       - Images
+  /profile/{username}:
+    get:
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns user profile and their images
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get public profile by username (no authentication required)
+      tags:
+      - Auth & Users
+  /reports/by-category:
+    get:
+      description: Get reports grouped by category for moderation purposes
+      parameters:
+      - description: Filter by specific category
+        in: query
+        name: category
+        type: string
+      - description: 'Limit number of results (default: 50)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get reports grouped by category (Admin only)
+      tags:
+      - Images
+  /reports/categories:
+    get:
+      description: Get list of available categories for reporting content
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/handlers.ReportCategory'
+              type: array
+            type: object
+      summary: Get available report categories
+      tags:
+      - Images
   /users:
     post:
       consumes:
@@ -518,18 +632,57 @@ paths:
       tags:
       - Images
   /users/me:
+    get:
+      description: Get the profile information of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current authenticated user info
+      tags:
+      - Auth & Users
     patch:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Allows the user to update their username, bio, profile picture,
         and/or password
       parameters:
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.UpdateUserRequest'
+      - description: New username
+        in: formData
+        name: username
+        type: string
+      - description: New bio
+        in: formData
+        name: bio
+        type: string
+      - description: New profile picture (JPG, PNG, WebP, max 10MB)
+        in: formData
+        name: profile_picture
+        type: file
+      - description: New password
+        in: formData
+        name: password
+        type: string
       produces:
       - application/json
       responses:
@@ -560,6 +713,27 @@ paths:
       security:
       - BearerAuth: []
       summary: Update the authenticated user's profile
+      tags:
+      - Auth & Users
+  /users/me/share-link:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns share_url
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get shareable link for current user's profile
       tags:
       - Auth & Users
 securityDefinitions:

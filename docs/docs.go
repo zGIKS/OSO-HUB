@@ -101,8 +101,13 @@ const docTemplate = `{
         },
         "/images": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -110,16 +115,21 @@ const docTemplate = `{
                 "tags": [
                     "Images"
                 ],
-                "summary": "Upload a new image",
+                "summary": "Upload a new image file to Cloudinary",
                 "parameters": [
                     {
-                        "description": "Image data",
+                        "type": "file",
+                        "description": "Image file (JPG, PNG, GIF, WebP, max 10MB)",
                         "name": "image",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UploadImageRequest"
-                        }
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image title (max 100 characters)",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -131,6 +141,13 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -309,6 +326,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/images/{image_id}/like/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Check if current user has liked an image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image ID",
+                        "name": "image_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns {'liked': true/false}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/images/{image_id}/likes/count": {
             "get": {
                 "tags": [
@@ -468,6 +535,133 @@ const docTemplate = `{
                 }
             }
         },
+        "/profile/{username}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth \u0026 Users"
+                ],
+                "summary": "Get public profile by username (no authentication required)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns user profile and their images",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/reports/by-category": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get reports grouped by category for moderation purposes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Get reports grouped by category (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by specific category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results (default: 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reports/categories": {
+            "get": {
+                "description": "Get list of available categories for reporting content",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Get available report categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/handlers.ReportCategory"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "post": {
                 "consumes": [
@@ -516,6 +710,50 @@ const docTemplate = `{
             }
         },
         "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the profile information of the currently authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth \u0026 Users"
+                ],
+                "summary": "Get current authenticated user info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "patch": {
                 "security": [
                     {
@@ -524,7 +762,7 @@ const docTemplate = `{
                 ],
                 "description": "Allows the user to update their username, bio, profile picture, and/or password",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -535,13 +773,28 @@ const docTemplate = `{
                 "summary": "Update the authenticated user's profile",
                 "parameters": [
                     {
-                        "description": "Fields to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UpdateUserRequest"
-                        }
+                        "type": "string",
+                        "description": "New username",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "New bio",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New profile picture (JPG, PNG, WebP, max 10MB)",
+                        "name": "profile_picture",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "New password",
+                        "name": "password",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -579,6 +832,40 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/share-link": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth \u0026 Users"
+                ],
+                "summary": "Get shareable link for current user's profile",
+                "responses": {
+                    "200": {
+                        "description": "Returns share_url",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -756,42 +1043,16 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateUserRequest": {
+        "handlers.ReportCategory": {
             "type": "object",
             "properties": {
-                "bio": {
+                "description": {
                     "type": "string"
                 },
-                "password": {
+                "id": {
                     "type": "string"
                 },
-                "profile_picture_url": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.UploadImageRequest": {
-            "type": "object",
-            "required": [
-                "image_url",
-                "title",
-                "user_id",
-                "username"
-            ],
-            "properties": {
-                "image_url": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                },
-                "username": {
+                "name": {
                     "type": "string"
                 }
             }
@@ -817,6 +1078,9 @@ const docTemplate = `{
                 "user_id": {
                     "type": "string"
                 },
+                "user_profile_picture_url": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -825,10 +1089,15 @@ const docTemplate = `{
         "models.ReportRequest": {
             "type": "object",
             "required": [
-                "reason"
+                "category"
             ],
             "properties": {
+                "category": {
+                    "description": "ID de la categoría (ej: \"harassment\", \"hate\", etc.)",
+                    "type": "string"
+                },
                 "reason": {
+                    "description": "Descripción adicional opcional",
                     "type": "string"
                 }
             }

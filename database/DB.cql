@@ -2,15 +2,14 @@ CREATE KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', '
 
 USE osohub;
 
-
-
--- 7. Tabla para búsqueda directa por image_id
+-- 8. Tabla para búsqueda directa por image_id
 CREATE TABLE IF NOT EXISTS images_by_id (
   image_id uuid PRIMARY KEY,
   day_bucket text,
   uploaded_at timestamp,
   user_id uuid,
   username text,
+  user_profile_picture_url text,
   image_url text,
   title text
 );
@@ -33,6 +32,7 @@ CREATE TABLE IF NOT EXISTS images_by_date (
   image_id uuid,
   user_id uuid,
   username text,
+  user_profile_picture_url text,
   image_url text,
   title text,
   PRIMARY KEY ((day_bucket), uploaded_at, image_id)
@@ -41,11 +41,15 @@ CREATE TABLE IF NOT EXISTS images_by_date (
 -- Índice secundario para email en users_by_id
 CREATE INDEX IF NOT EXISTS users_by_id_email_idx ON users_by_id (email);
 
+-- Índice secundario para username en users_by_id (para búsqueda de perfiles públicos)
+CREATE INDEX IF NOT EXISTS users_by_id_username_idx ON users_by_id (username);
+
 -- 3. Tabla para publicaciones por usuario (perfil)
 CREATE TABLE IF NOT EXISTS images_by_user (
   user_id uuid,
   uploaded_at timestamp,
   image_id uuid,
+  user_profile_picture_url text,
   image_url text,
   title text,
   PRIMARY KEY (user_id, uploaded_at, image_id)
@@ -63,7 +67,8 @@ CREATE TABLE IF NOT EXISTS reports_by_image (
   image_id uuid,
   report_id timeuuid,
   reporter_id uuid,
-  reason text,
+  category text, -- Categoría del reporte: 'harassment', 'hate', 'spam', etc.
+  reason text,   -- Descripción adicional opcional
   reported_at timestamp,
   PRIMARY KEY (image_id, report_id)
 ) WITH CLUSTERING ORDER BY (report_id DESC);
@@ -75,5 +80,16 @@ CREATE TABLE IF NOT EXISTS likes_by_image (
   liked_at timestamp,
   PRIMARY KEY (image_id, user_id)
 );
+
+-- 7. Tabla de reportes agrupados por categoría (para análisis y moderación)
+CREATE TABLE IF NOT EXISTS reports_by_category (
+  category text,
+  reported_at timestamp,
+  report_id timeuuid,
+  image_id uuid,
+  reporter_id uuid,
+  reason text,
+  PRIMARY KEY (category, reported_at, report_id)
+) WITH CLUSTERING ORDER BY (reported_at DESC, report_id DESC);
 
 
