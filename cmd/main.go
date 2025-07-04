@@ -23,7 +23,7 @@ import (
 // @title OSOHUB API
 // @version 1.0
 // @description API for OSOHUB using Cassandra
-// @host localhost:8080
+// @host oso-hub.onrender.com
 // @BasePath /
 
 // @tag.name Auth & Users

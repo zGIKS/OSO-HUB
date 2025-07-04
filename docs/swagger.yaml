@@ -85,7 +85,7 @@ definitions:
       username:
         type: string
     type: object
-host: localhost:8080
+host: oso-hub.onrender.com
 info:
   contact: {}
   description: API for OSOHUB using Cassandra
