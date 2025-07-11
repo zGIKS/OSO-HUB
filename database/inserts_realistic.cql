@@ -42,3 +42,5 @@ VALUES (c3d4e5f6-a7b8-9012-3456-789012cdefcd, '2025-06-30 20:47:00', f3a4b5c6-d7
 
 --no tocar es para los nodos XD
 ALTER KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC1': 3};
+
+ALTER KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC1': 2};

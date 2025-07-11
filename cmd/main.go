@@ -11,6 +11,7 @@ import (
 	"osohub/handlers"
 	"osohub/middleware"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
@@ -54,6 +55,25 @@ func main() {
 		sess := db.GetSession()
 		if sess != nil {
 			sess.Close()
+		}
+	}()
+
+	// Ping Cassandra cada 10 segundos y reconecta si la sesión está caída
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			sess := db.GetSession()
+			if sess == nil || sess.Closed() {
+				log.Println("[Cassandra] Session closed, reconnecting...")
+				db.InitCassandra()
+			} else {
+				if err := sess.Query("SELECT now() FROM system.local").Exec(); err != nil {
+					log.Printf("[Cassandra] Ping error: %v. Reconnecting...", err)
+					db.InitCassandra()
+				} else {
+					log.Println("[Cassandra] Ping OK")
+				}
+			}
 		}
 	}()
 
