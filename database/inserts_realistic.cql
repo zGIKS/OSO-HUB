@@ -39,3 +39,6 @@ VALUES ('2025-06-30', '2025-06-30 20:47:00', f3a4b5c6-d7e8-9012-3456-789012cdef3
 INSERT INTO images_by_user (user_id, uploaded_at, image_id, user_profile_picture_url, image_url, title)
 VALUES (c3d4e5f6-a7b8-9012-3456-789012cdefcd, '2025-06-30 20:47:00', f3a4b5c6-d7e8-9012-3456-789012cdef34, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop', 'Retrato urbano: luz natural en las calles de Madrid 📸');
 
+
+--no tocar es para los nodos XD
+ALTER KEYSPACE osohub WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC1': 3};
